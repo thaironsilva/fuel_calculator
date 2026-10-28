@@ -1,0 +1,252 @@
+<Layouts.app flash={@flash}>
+  <div id="fuel-calculator" class="space-y-8">
+    <header class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+      <div class="max-w-2xl">
+        <div class="inline-flex items-center gap-2 rounded-full border border-indigo-400/20 bg-indigo-400/10 px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-indigo-200">
+          <.icon name="hero-rocket-launch" class="size-3.5" /> Mission planner
+        </div>
+        <h1 class="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+          Fuel Calculator
+        </h1>
+        <p class="mt-2 text-sm leading-6 text-slate-400">
+          Build a route, set the ship mass, and see the fuel required to launch, land, and return.
+        </p>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+        <span class="mr-1">Available destinations</span>
+        <span
+          :for={planet <- @planets}
+          class="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1"
+        >
+          <span class={["size-1.5 rounded-full", @planet_styles[planet].dot]} />
+          {@planet_styles[planet].label}
+        </span>
+      </div>
+    </header>
+
+    <div class="grid gap-6 lg:grid-cols-12">
+      <div class="space-y-6 lg:col-span-5">
+        <section class="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-2xl shadow-black/30 backdrop-blur-xl">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <h2 class="text-sm font-semibold text-white">Route</h2>
+              <p class="mt-1 text-xs text-slate-500">Add stops in travel order.</p>
+            </div>
+            <span class="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-400">
+              {length(@route)} stops
+            </span>
+          </div>
+
+          <div class="mt-5">
+            <.form for={@stop_form} id="add-stop-form" phx-submit="submit_stop">
+              <label for="stop-planet" class="sr-only">Add a route stop</label>
+              <div
+                id="route-chips"
+                class="flex min-h-14 flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 transition focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-500/30"
+              >
+                <div
+                  :for={{planet, index} <- Enum.with_index(@route)}
+                  id={"route-chip-#{index}"}
+                  class={[
+                    "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium",
+                    @planet_styles[planet].chip
+                  ]}
+                >
+                  <span class={["size-1.5 rounded-full", @planet_styles[planet].dot]} />
+                  <span>{@planet_styles[planet].label}</span>
+                  <button
+                    id={"remove-stop-#{index}"}
+                    type="button"
+                    phx-click="remove_stop"
+                    phx-value-index={index}
+                    aria-label={"Remove #{@planet_styles[planet].label} stop"}
+                    class="ml-0.5 rounded-full p-0.5 text-white/50 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+                  >
+                    <.icon name="hero-x-mark" class="size-3" />
+                  </button>
+                </div>
+                <input
+                  id="stop-planet"
+                  name={@stop_form[:planet].name}
+                  value={@stop_form[:planet].value}
+                  type="text"
+                  list="planet-options"
+                  placeholder="Type or select a planet…"
+                  autocomplete="off"
+                  data-planets={Enum.map_join(@planets, ",", &@planet_styles[&1].label)}
+                  phx-hook="PlanetInput"
+                  phx-update="ignore"
+                  class="min-w-[8rem] flex-1 bg-transparent px-1 py-1 text-sm text-white placeholder:text-slate-600 focus:outline-none"
+                />
+                <datalist id="planet-options">
+                  <option :for={planet <- @planets} value={@planet_styles[planet].label}></option>
+                </datalist>
+              </div>
+              <p
+                :if={@route_error}
+                id="route-error"
+                class="mt-2 flex items-center gap-1.5 text-xs text-rose-300"
+              >
+                <.icon name="hero-exclamation-circle" class="size-4" />
+                {@route_error}
+              </p>
+            </.form>
+          </div>
+
+          <div class="mt-4 flex flex-wrap items-center gap-2">
+            <span class="text-xs text-slate-500">Quick add</span>
+            <button
+              :for={planet <- @planets}
+              id={"quick-add-#{planet}"}
+              type="button"
+              phx-click="add_planet"
+              phx-value-planet={planet}
+              class={[
+                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition focus:outline-none focus:ring-2 focus:ring-white/30",
+                @planet_styles[planet].quick
+              ]}
+            >
+              <.icon name={@planet_styles[planet].icon} class="size-3.5" />
+              {@planet_styles[planet].label}
+            </button>
+          </div>
+        </section>
+
+        <section class="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-2xl shadow-black/30 backdrop-blur-xl">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <h2 class="text-sm font-semibold text-white">Ship mass</h2>
+              <p class="mt-1 text-xs text-slate-500">
+                The mass of the ship before fuel is added.
+              </p>
+            </div>
+            <span class="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-400">
+              kg
+            </span>
+          </div>
+
+          <.form
+            for={@mass_form}
+            id="mass-form"
+            phx-change="set_mass"
+            phx-submit="set_mass"
+            class="mt-5 space-y-2"
+          >
+            <label for="ship-mass" class="sr-only">Ship mass in kilograms</label>
+            <div class="relative">
+              <input
+                id="ship-mass"
+                name={@mass_form[:mass].name}
+                value={@mass_form[:mass].value}
+                type="number"
+                min="1"
+                step="1"
+                inputmode="numeric"
+                class="w-full rounded-xl border border-white/10 bg-slate-900/70 px-4 py-3 pr-12 text-sm text-white placeholder:text-slate-600 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+              />
+              <span class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-xs text-slate-500">
+                kg
+              </span>
+            </div>
+            <p
+              :if={@mass_error}
+              id="mass-error"
+              class="flex items-center gap-1.5 text-xs text-rose-300"
+            >
+              <.icon name="hero-exclamation-circle" class="size-4" />
+              {@mass_error}
+            </p>
+          </.form>
+        </section>
+      </div>
+
+      <div class="space-y-6 lg:col-span-7">
+        <section class="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-2xl shadow-black/30 backdrop-blur-xl">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <h2 class="text-sm font-semibold text-white">Trajectory</h2>
+              <p class="mt-1 text-xs text-slate-500">Derived from the order of your stops.</p>
+            </div>
+          </div>
+
+          <%= cond do %>
+            <% length(@route) == 0 -> %>
+              <p id="trajectory-empty" class="mt-5 text-sm text-slate-500">
+                Add your first stop to start building the trajectory.
+              </p>
+            <% length(@route) == 1 -> %>
+              <p id="trajectory-empty" class="mt-5 text-sm text-slate-500">
+                Add one more stop to complete the route.
+              </p>
+            <% true -> %>
+              <ol id="trajectory" class="mt-6 space-y-0">
+                <li
+                  :for={step <- @trajectory}
+                  id={"trajectory-step-#{step.index}"}
+                  class="flex gap-4"
+                >
+                  <div class="flex flex-col items-center">
+                    <span class={[
+                      "flex size-9 shrink-0 items-center justify-center rounded-full ring-1",
+                      @action_styles[step.action].badge
+                    ]}>
+                      <.icon name={@action_styles[step.action].icon} class="size-4" />
+                    </span>
+                    <span
+                      :if={not step.last?}
+                      class="mt-2 w-px flex-1 bg-gradient-to-b from-white/15 to-transparent"
+                    />
+                  </div>
+                  <div class={["min-w-0 pt-1.5", not step.last? && "pb-6"]}>
+                    <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span class="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                        {@action_styles[step.action].label}
+                      </span>
+                      <span class="text-sm font-medium text-white">
+                        {@planet_styles[step.planet].label}
+                      </span>
+                    </div>
+                    <p class="mt-1 text-xs text-slate-500">
+                      {@action_styles[step.action].description}
+                    </p>
+                  </div>
+                </li>
+              </ol>
+          <% end %>
+        </section>
+
+        <section class="relative overflow-hidden rounded-3xl border border-indigo-400/20 bg-gradient-to-br from-indigo-500/10 via-slate-900/40 to-slate-950/40 p-6 shadow-2xl shadow-indigo-950/30">
+          <div class="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full bg-indigo-500/20 blur-3xl">
+          </div>
+          <div class="relative">
+            <h2 class="text-sm font-semibold text-white">Total fuel</h2>
+
+            <div id="fuel-result" aria-live="polite" class="mt-4">
+              <div class="flex items-baseline gap-2">
+                <span
+                  id="fuel-result-value"
+                  class={[
+                    "text-4xl font-semibold tracking-tight sm:text-5xl",
+                    @fuel &&
+                      "bg-gradient-to-r from-indigo-300 via-sky-300 to-emerald-300 bg-clip-text text-transparent",
+                    is_nil(@fuel) && "text-slate-600"
+                  ]}
+                >
+                  {format_fuel(@fuel)}
+                </span>
+                <span :if={@fuel} class="text-sm font-medium text-slate-400">kg</span>
+              </div>
+              <p id="fuel-result-hint" class="mt-3 text-xs text-slate-400">
+                {result_hint(@fuel, @route, @mass_input)}
+              </p>
+              <p :if={@fuel} id="fuel-result-meta" class="mt-2 text-xs text-slate-500">
+                {length(@route)} stops · {format_number(@mass)} kg ship mass
+              </p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+</Layouts.app>

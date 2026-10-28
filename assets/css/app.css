@@ -8,6 +8,7 @@
 
 html {
   color-scheme: dark;
+  scrollbar-gutter: stable both-edges;
 }
 
 /* Make LiveView wrapper divs transparent for layout */
