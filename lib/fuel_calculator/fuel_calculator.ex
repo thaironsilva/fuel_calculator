@@ -32,5 +32,5 @@ defmodule FuelCalculator.FuelCalculator do
   defp fuel_calc_func(:landing), do: fn planet, mass -> floor(mass * gravity(planet) * 0.033 - 42) end
   defp gravity(:earth), do: 9.807
   defp gravity(:moon), do: 1.62
-  defp gravity(:mars), do: 3.71
+  defp gravity(:mars), do: 3.711
 end
