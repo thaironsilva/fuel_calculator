@@ -11,6 +11,7 @@ import Config
 config :fuel_calculator, FuelCalculatorWeb.Endpoint,
   url: [host: "localhost"],
   adapter: Bandit.PhoenixAdapter,
+  check_origin: :conn,
   render_errors: [
     formats: [html: FuelCalculatorWeb.ErrorHTML],
     layout: false

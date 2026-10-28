@@ -18,3 +18,12 @@ Visit [localhost:4000](http://localhost:4000).
 ```bash
 mix test
 ```
+
+## Docker
+
+```bash
+docker compose up -d
+```
+
+Visit [localhost:4000](http://localhost:4000). Stop with `docker compose down`.
+
