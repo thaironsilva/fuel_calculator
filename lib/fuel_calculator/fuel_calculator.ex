@@ -5,7 +5,7 @@ defmodule FuelCalculator.FuelCalculator do
   Landing: mass * gravity * 0.033 - 42 (rounded down)
   """
 
-  @spec calculate_fuel(list(:atom), integer()) ::integer()
+  @spec calculate_fuel(list(:atom), integer()) :: integer()
   def calculate_fuel(route, ship_mass) do
     {total_fuel, _total_ship_mass} =
       route
@@ -28,8 +28,12 @@ defmodule FuelCalculator.FuelCalculator do
     if fuel <= 0, do: 0, else: fuel + calculate_fuel(ship_action, planet, fuel)
   end
 
-  defp fuel_calc_func(:launch), do: fn planet, mass -> floor(mass * gravity(planet) * 0.042 - 33) end
-  defp fuel_calc_func(:landing), do: fn planet, mass -> floor(mass * gravity(planet) * 0.033 - 42) end
+  defp fuel_calc_func(:launch),
+    do: fn planet, mass -> floor(mass * gravity(planet) * 0.042 - 33) end
+
+  defp fuel_calc_func(:landing),
+    do: fn planet, mass -> floor(mass * gravity(planet) * 0.033 - 42) end
+
   defp gravity(:earth), do: 9.807
   defp gravity(:moon), do: 1.62
   defp gravity(:mars), do: 3.711

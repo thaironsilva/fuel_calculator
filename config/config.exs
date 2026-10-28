@@ -7,24 +7,16 @@
 # General application configuration
 import Config
 
-config :fuel_calculator,
-  generators: [timestamp_type: :utc_datetime]
-
 # Configure the endpoint
 config :fuel_calculator, FuelCalculatorWeb.Endpoint,
   url: [host: "localhost"],
   adapter: Bandit.PhoenixAdapter,
   render_errors: [
-    formats: [html: FuelCalculatorWeb.ErrorHTML, json: FuelCalculatorWeb.ErrorJSON],
+    formats: [html: FuelCalculatorWeb.ErrorHTML],
     layout: false
   ],
   pubsub_server: FuelCalculator.PubSub,
   live_view: [signing_salt: "HbftMRxF"]
-
-# Configure LiveView
-config :phoenix_live_view,
-  # the attribute set on all root tags. Used for Phoenix.LiveView.ColocatedCSS.
-  root_tag_attribute: "phx-r"
 
 # Configure esbuild (the version is required)
 config :esbuild,

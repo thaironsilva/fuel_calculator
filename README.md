@@ -1,18 +1,20 @@
-# FuelCalculator
+# Fuel Calculator
 
-To start your Phoenix server:
+A Phoenix LiveView interface for calculating the fuel required for a space route.
 
-* Run `mix setup` to install and setup dependencies
-* Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
+Pick a route with chips, enter the ship mass, and see the launch/landing trajectory and total fuel update live.
 
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+## Run
 
-Ready to run in production? Please [check our deployment guides](https://phoenix.hexdocs.pm/deployment.html).
+```bash
+mix setup
+mix phx.server
+```
 
-## Learn more
+Visit [localhost:4000](http://localhost:4000).
 
-* Official website: https://www.phoenixframework.org/
-* Guides: https://phoenix.hexdocs.pm/overview.html
-* Docs: https://phoenix.hexdocs.pm
-* Forum: https://elixirforum.com/c/phoenix-forum
-* Source: https://github.com/phoenixframework/phoenix
+## Test
+
+```bash
+mix test
+```

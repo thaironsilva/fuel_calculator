@@ -14,8 +14,6 @@ import Config
 #
 #     PHX_SERVER=true bin/fuel_calculator start
 #
-# Alternatively, you can use `mix phx.gen.release` to generate a `bin/server`
-# script that automatically sets the env var above.
 if System.get_env("PHX_SERVER") do
   config :fuel_calculator, FuelCalculatorWeb.Endpoint, server: true
 end
@@ -29,11 +27,7 @@ if config_env() == :dev do
     live_reload: [
       web_console_logger: true,
       patterns: [
-        # Static assets, except user uploads
-        ~r"priv/static/(?!uploads/).*\.(js|css|png|jpeg|jpg|gif|svg)$"E,
-        # Gettext translations
-        ~r"priv/gettext/.*\.po$"E,
-        # Router, Controllers, LiveViews and LiveComponents
+        ~r"priv/static/.*\.(js|css|png|jpeg|jpg|gif|svg)$"E,
         ~r"lib/fuel_calculator_web/router\.ex$"E,
         ~r"lib/fuel_calculator_web/(controllers|live|components)/.*\.(ex|heex)$"E
       ]
@@ -54,8 +48,6 @@ if config_env() == :prod do
       """
 
   host = System.get_env("PHX_HOST") || "example.com"
-
-  config :fuel_calculator, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
   config :fuel_calculator, FuelCalculatorWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
@@ -99,12 +91,4 @@ if config_env() == :prod do
   #       force_ssl: [hsts: true]
   #
   # Check `Plug.SSL` for all available options in `force_ssl`.
-
-  # Most non-SMTP adapters require an API client. Swoosh supports Req, Hackney,
-  # and Finch out-of-the-box. This configuration is typically done at
-  # compile-time in your config/prod.exs:
-  #
-  #     config :swoosh, :api_client, Swoosh.ApiClient.Req
-  #
-  # See https://swoosh.hexdocs.pm/Swoosh.html#module-installation for details.
 end

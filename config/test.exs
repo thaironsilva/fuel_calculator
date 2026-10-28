@@ -1,20 +1,11 @@
 import Config
 
-# Configure your database
-#
-# The MIX_TEST_PARTITION environment variable can be used
-# to provide built-in test partitioning in CI environment.
-# Run `mix help test` for more information.\
-
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
 config :fuel_calculator, FuelCalculatorWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4002],
   secret_key_base: "EKqaduHPBaLBU8rT6HI6qqnK9zuI/OSIIvcDVO/qpbR6Jn3qp1YSbzIWqbOSIWSK",
   server: false
-
-# Disable swoosh api client as it is only required for production adapters
-config :swoosh, :api_client, false
 
 # Print only warnings and errors during test
 config :logger, level: :warning

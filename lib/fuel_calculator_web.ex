@@ -1,11 +1,11 @@
 defmodule FuelCalculatorWeb do
   @moduledoc """
   The entrypoint for defining your web interface, such
-  as controllers, components, channels, and so on.
+  as layouts, LiveViews, and components.
 
   This can be used in your application as:
 
-      use FuelCalculatorWeb, :controller
+      use FuelCalculatorWeb, :live_view
       use FuelCalculatorWeb, :html
 
   The definitions below will be executed for every controller,
@@ -17,7 +17,7 @@ defmodule FuelCalculatorWeb do
   those modules here.
   """
 
-  def static_paths, do: ~w(assets fonts images favicon.ico robots.txt)
+  def static_paths, do: ~w(assets favicon.ico robots.txt)
 
   def router do
     quote do
@@ -30,35 +30,12 @@ defmodule FuelCalculatorWeb do
     end
   end
 
-  def channel do
-    quote do
-      use Phoenix.Channel
-    end
-  end
-
-  def controller do
-    quote do
-      use Phoenix.Controller, formats: [:html, :json]
-
-      use Gettext, backend: FuelCalculatorWeb.Gettext
-
-      import Plug.Conn
-
-      unquote(verified_routes())
-    end
-  end
-
   def live_view do
     quote do
       use Phoenix.LiveView
 
-      unquote(html_helpers())
-    end
-  end
-
-  def live_component do
-    quote do
-      use Phoenix.LiveComponent
+      import FuelCalculatorWeb.CoreComponents
+      alias FuelCalculatorWeb.Layouts
 
       unquote(html_helpers())
     end
@@ -72,26 +49,12 @@ defmodule FuelCalculatorWeb do
       import Phoenix.Controller,
         only: [get_csrf_token: 0, view_module: 1, view_template: 1]
 
-      # Include general helpers for rendering HTML
       unquote(html_helpers())
     end
   end
 
   defp html_helpers do
     quote do
-      # Translation
-      use Gettext, backend: FuelCalculatorWeb.Gettext
-
-      # HTML escaping functionality
-      import Phoenix.HTML
-      # Core UI components
-      import FuelCalculatorWeb.CoreComponents
-
-      # Common modules used in templates
-      alias Phoenix.LiveView.JS
-      alias FuelCalculatorWeb.Layouts
-
-      # Routes generation with the ~p sigil
       unquote(verified_routes())
     end
   end
