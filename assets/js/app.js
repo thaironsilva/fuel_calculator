@@ -7,7 +7,7 @@ import {LiveSocket} from "phoenix_live_view"
 const Hooks = {
   PlanetInput: {
     mounted() {
-      this.handleEvent("clear_stop_input", () => {
+      this.handleEvent("clear_step_input", () => {
         this.el.value = ""
       })
 

@@ -1,15 +1,20 @@
 defmodule FuelCalculatorWeb.FuelLive do
   use FuelCalculatorWeb, :live_view
 
-  alias FuelCalculator.FuelCalculator
+  alias FuelCalculator.{FuelCalculator, Planet}
 
-  @default_route [:earth, :moon, :earth]
+  @default_steps [
+    {:launch, :earth},
+    {:land, :moon},
+    {:launch, :moon},
+    {:land, :earth}
+  ]
+
   @default_mass 28_801
-  @planets [:earth, :moon, :mars]
+  @actions [:launch, :land]
 
   @planet_styles %{
     earth: %{
-      label: "Earth",
       icon: "hero-globe-alt",
       dot: "bg-sky-400",
       chip: "border-sky-400/30 bg-sky-400/10 text-sky-200",
@@ -17,7 +22,6 @@ defmodule FuelCalculatorWeb.FuelLive do
         "border-sky-400/20 bg-sky-400/5 text-sky-200 hover:border-sky-400/40 hover:bg-sky-400/15"
     },
     moon: %{
-      label: "Moon",
       icon: "hero-moon",
       dot: "bg-slate-300",
       chip: "border-slate-300/30 bg-slate-300/10 text-slate-100",
@@ -25,7 +29,6 @@ defmodule FuelCalculatorWeb.FuelLive do
         "border-slate-300/20 bg-slate-300/5 text-slate-200 hover:border-slate-300/40 hover:bg-slate-300/15"
     },
     mars: %{
-      label: "Mars",
       icon: "hero-fire",
       dot: "bg-orange-400",
       chip: "border-orange-400/30 bg-orange-400/10 text-orange-200",
@@ -51,58 +54,78 @@ defmodule FuelCalculatorWeb.FuelLive do
 
   @impl true
   def mount(_params, _session, socket) do
+    mass_input = to_string(@default_mass)
+
     socket =
       socket
-      |> assign(:planets, @planets)
+      |> assign(:planets, Planet.all())
       |> assign(:planet_styles, @planet_styles)
       |> assign(:action_styles, @action_styles)
-      |> assign(:route, @default_route)
-      |> assign(:mass_input, Integer.to_string(@default_mass))
+      |> assign(:actions, @actions)
+      |> assign(:action, :launch)
+      |> assign(:steps, @default_steps)
+      |> assign(:mass_input, mass_input)
       |> assign(:mass_error, nil)
-      |> assign(:route_error, nil)
-      |> assign(:stop_form, stop_form(""))
-      |> assign(:mass_form, mass_form(Integer.to_string(@default_mass)))
+      |> assign(:step_error, nil)
+      |> assign(:step_form, step_form(""))
+      |> assign(:mass_form, mass_form(mass_input))
       |> recalculate()
 
     {:ok, socket}
   end
 
   @impl true
-  def handle_event("submit_stop", %{"stop" => %{"planet" => value}}, socket) do
-    case parse_planet(value) do
-      nil ->
-        route_error = if String.trim(value) == "", do: nil, else: "Choose Earth, Moon, or Mars."
+  def handle_event("set_action", %{"action" => value}, socket) when is_binary(value) do
+    case parse_action(value) do
+      nil -> {:noreply, socket}
+      action -> {:noreply, assign(socket, :action, action)}
+    end
+  end
+
+  def handle_event("set_action", _params, socket), do: {:noreply, socket}
+
+  def handle_event("submit_step", %{"step" => %{"planet" => value}}, socket)
+      when is_binary(value) do
+    case Planet.parse(value) do
+      {:ok, planet} ->
+        {:noreply, add_step(socket, planet)}
+
+      :error ->
+        step_error = if String.trim(value) == "", do: nil, else: "Choose Earth, Moon, or Mars."
 
         {:noreply,
          socket
-         |> assign(:stop_form, stop_form(value))
-         |> assign(:route_error, route_error)}
-
-      planet ->
-        {:noreply, add_planet(socket, planet)}
+         |> assign(:step_form, step_form(value))
+         |> assign(:step_error, step_error)}
     end
   end
 
-  def handle_event("select_planet", %{"planet" => value}, socket) do
-    case parse_planet(value) do
-      nil -> {:noreply, socket}
-      planet -> {:noreply, add_planet(socket, planet)}
+  def handle_event("submit_step", _params, socket), do: {:noreply, socket}
+
+  def handle_event("select_planet", %{"planet" => value}, socket) when is_binary(value) do
+    case Planet.parse(value) do
+      {:ok, planet} -> {:noreply, add_step(socket, planet)}
+      :error -> {:noreply, socket}
     end
   end
 
-  def handle_event("add_planet", %{"planet" => value}, socket) do
-    case parse_planet(value) do
-      nil -> {:noreply, socket}
-      planet -> {:noreply, add_planet(socket, planet)}
+  def handle_event("select_planet", _params, socket), do: {:noreply, socket}
+
+  def handle_event("add_step", %{"planet" => value}, socket) when is_binary(value) do
+    case Planet.parse(value) do
+      {:ok, planet} -> {:noreply, add_step(socket, planet)}
+      :error -> {:noreply, socket}
     end
   end
 
-  def handle_event("remove_stop", %{"index" => index}, socket) do
+  def handle_event("add_step", _params, socket), do: {:noreply, socket}
+
+  def handle_event("remove_step", %{"index" => index}, socket) do
     with {index, ""} <- Integer.parse(index),
-         true <- index >= 0 and index < length(socket.assigns.route) do
+         true <- index >= 0 and index < length(socket.assigns.steps) do
       socket =
         socket
-        |> assign(:route, List.delete_at(socket.assigns.route, index))
+        |> assign(:steps, List.delete_at(socket.assigns.steps, index))
         |> recalculate()
 
       {:noreply, socket}
@@ -122,37 +145,34 @@ defmodule FuelCalculatorWeb.FuelLive do
     {:noreply, socket}
   end
 
-  defp add_planet(socket, planet) do
+  defp add_step(socket, planet) do
+    step = {socket.assigns.action, planet}
+
     socket
-    |> assign(:route, socket.assigns.route ++ [planet])
-    |> assign(:stop_form, stop_form(""))
-    |> assign(:route_error, nil)
+    |> assign(:steps, socket.assigns.steps ++ [step])
+    |> assign(:step_form, step_form(""))
+    |> assign(:step_error, nil)
     |> recalculate()
-    |> push_event("clear_stop_input", %{})
+    |> push_event("clear_step_input", %{})
   end
 
   defp recalculate(socket) do
-    route = socket.assigns.route
+    steps = socket.assigns.steps
     mass = parse_mass(socket.assigns.mass_input)
 
     fuel =
-      if length(route) >= 2 and is_integer(mass) do
-        FuelCalculator.calculate_fuel(route, mass)
+      if steps != [] and is_number(mass) do
+        FuelCalculator.calculate_fuel(steps, mass)
       end
 
     assign(socket,
-      trajectory: trajectory(route),
+      trajectory: trajectory(steps),
       mass: mass,
       fuel: fuel
     )
   end
 
-  defp trajectory(route) do
-    steps =
-      route
-      |> Enum.chunk_every(2, 1, :discard)
-      |> Enum.flat_map(fn [from, to] -> [{:launch, from}, {:land, to}] end)
-
+  defp trajectory(steps) do
     last_index = length(steps) - 1
 
     steps
@@ -162,33 +182,30 @@ defmodule FuelCalculatorWeb.FuelLive do
     end)
   end
 
-  defp parse_planet(value) when is_binary(value) do
-    case value |> String.trim() |> String.downcase() do
-      "earth" -> :earth
-      "moon" -> :moon
-      "mars" -> :mars
-      _ -> nil
-    end
-  end
+  defp parse_action("launch"), do: :launch
+  defp parse_action("land"), do: :land
+  defp parse_action(_), do: nil
 
-  defp parse_planet(_), do: nil
-
-  defp parse_mass(value) do
-    case Integer.parse(String.trim(value)) do
+  defp parse_mass(value) when is_binary(value) do
+    case Float.parse(String.trim(value)) do
       {mass, ""} when mass > 0 -> mass
       _ -> nil
     end
   end
 
-  defp mass_error(value) do
+  defp parse_mass(_), do: nil
+
+  defp mass_error(value) when is_binary(value) do
     cond do
       String.trim(value) == "" -> nil
-      is_integer(parse_mass(value)) -> nil
-      true -> "Use a whole number greater than zero."
+      is_number(parse_mass(value)) -> nil
+      true -> "Use a positive number."
     end
   end
 
-  defp stop_form(value), do: to_form(%{"planet" => value}, as: :stop)
+  defp mass_error(_), do: "Use a positive number."
+
+  defp step_form(value), do: to_form(%{"planet" => value}, as: :step)
   defp mass_form(value), do: to_form(%{"mass" => value}, as: :ship)
 
   defp format_fuel(nil), do: "—"
@@ -197,22 +214,36 @@ defmodule FuelCalculatorWeb.FuelLive do
   defp format_number(nil), do: "—"
 
   defp format_number(number) when is_integer(number) do
-    number
-    |> Integer.to_string()
+    number |> Integer.to_string() |> group_digits()
+  end
+
+  defp format_number(number) when is_float(number) do
+    [integer, decimal] =
+      number
+      |> Float.to_string()
+      |> String.split(".", parts: 2)
+
+    grouped = group_digits(integer)
+
+    if decimal == "0", do: grouped, else: grouped <> "." <> decimal
+  end
+
+  defp group_digits(value) do
+    value
     |> String.reverse()
     |> String.replace(~r/(\d{3})(?=\d)/, "\\1,")
     |> String.reverse()
   end
 
-  defp result_hint(nil, route, mass_input) do
+  defp result_hint(nil, steps, mass_input) do
     cond do
-      length(route) < 2 -> "Add at least two stops to see the trajectory and fuel."
+      steps == [] -> "Add at least one step to see the trajectory and fuel."
       String.trim(mass_input) == "" -> "Enter the ship mass to calculate fuel."
-      true -> "Enter a whole number greater than zero for the ship mass."
+      true -> "Enter a positive number for the ship mass."
     end
   end
 
-  defp result_hint(_fuel, _route, _mass_input) do
+  defp result_hint(_fuel, _steps, _mass_input) do
     "Includes launch, landing, and fuel-carrying costs."
   end
 end
